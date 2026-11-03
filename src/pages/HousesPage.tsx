@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RotateCcw, Search, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { inputClass } from '@/components/ui/Field';
@@ -8,23 +8,52 @@ import { HouseDetailModal } from '@/components/houses/HouseDetailModal';
 import { HouseFormModal } from '@/components/houses/HouseFormModal';
 import { HouseList } from '@/components/houses/HouseList';
 import { usePagedList } from '@/hooks/usePagedList';
-import { houseApi } from '@/lib/api/houses';
+import { houseApi, type HouseFilters } from '@/lib/api/houses';
 import { PAGE_SIZE } from '@/lib/api/pagination';
 import { formatNumber } from '@/lib/format';
-import type { House } from '@/types';
+import { RT_OPTIONS, SORTING_OPTIONS } from '@/lib/labels';
+import type { House, SortingStatus } from '@/types';
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 export function HousesPage() {
   const [page, setPage] = useState(1);
-  const { data: houses, meta, loading, error, reload } = usePagedList(houseApi.listPage, page, PAGE_SIZE);
   const [search, setSearch] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const [rtFilter, setRtFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<SortingStatus | ''>('');
   const [formOpen, setFormOpen] = useState(false);
   const [selectedHouse, setSelectedHouse] = useState<House | null>(null);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAppliedSearch(search.trim());
+      setPage(1);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const filters = useMemo<HouseFilters>(
+    () => ({
+      search: appliedSearch || undefined,
+      rt: rtFilter || undefined,
+      isSortingWaste: statusFilter || undefined,
+    }),
+    [appliedSearch, rtFilter, statusFilter],
+  );
+  const fetchHouses = useCallback((p: number, s: number) => houseApi.listPage(p, s, filters), [filters]);
+
+  const { data: houses, meta, loading, error, reload } = usePagedList(fetchHouses, page, PAGE_SIZE);
   const total = meta?.total ?? 0;
-  const term = search.trim().toLowerCase();
-  const filteredHouses = term
-    ? houses.filter((house) => [house.headOfFamilyName, house.streetName ?? ''].join(' ').toLowerCase().includes(term))
-    : houses;
+  const hasFilters = Boolean(appliedSearch || rtFilter || statusFilter);
+
+  const resetFilters = () => {
+    setSearch('');
+    setAppliedSearch('');
+    setRtFilter('');
+    setStatusFilter('');
+    setPage(1);
+  };
 
   const handleSaved = () => {
     setFormOpen(false);
@@ -38,36 +67,33 @@ export function HousesPage() {
     if (total === 0) {
       return (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white">
-          <EmptyState
-            title="Belum ada rumah terdata"
-            description="Mulai pendataan dengan menambahkan rumah warga pertama di wilayah KKN Anda."
-            action={
-              <Button onClick={() => setFormOpen(true)}>
-                <UserPlus className="h-4 w-4" />
-                Tambah Rumah
-              </Button>
-            }
-          />
+          {hasFilters ? (
+            <EmptyState
+              title="Tidak ada rumah yang cocok"
+              description="Coba ubah kata kunci pencarian atau filter yang sedang aktif."
+              action={
+                <Button variant="secondary" onClick={resetFilters}>
+                  <RotateCcw className="h-4 w-4" />
+                  Reset filter
+                </Button>
+              }
+            />
+          ) : (
+            <EmptyState
+              title="Belum ada rumah terdata"
+              description="Mulai pendataan dengan menambahkan rumah warga pertama di wilayah KKN Anda."
+              action={
+                <Button onClick={() => setFormOpen(true)}>
+                  <UserPlus className="h-4 w-4" />
+                  Tambah Rumah
+                </Button>
+              }
+            />
+          )}
         </div>
       );
     }
-    if (filteredHouses.length === 0) {
-      return (
-        <div className="rounded-2xl border border-slate-200 bg-white">
-          <EmptyState
-            title="Tidak ada rumah yang cocok"
-            description="Coba ubah kata kunci pencarian."
-            action={
-              <Button variant="secondary" onClick={() => setSearch('')}>
-                <RotateCcw className="h-4 w-4" />
-                Reset pencarian
-              </Button>
-            }
-          />
-        </div>
-      );
-    }
-    return <HouseList houses={filteredHouses} onSelect={setSelectedHouse} />;
+    return <HouseList houses={houses} onSelect={setSelectedHouse} />;
   };
 
   return (
@@ -82,21 +108,57 @@ export function HousesPage() {
         </Button>
       </section>
 
-      <div className="relative rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <Search className="pointer-events-none absolute inset-y-0 left-7 my-auto h-4 w-4 text-slate-400" />
-        <input
-          type="search"
-          aria-label="Cari kepala keluarga atau jalan"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Cari kepala keluarga atau nama jalan (halaman ini)"
-          className={`${inputClass()} pl-10`}
-        />
-      </div>
+      <section className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[1fr_160px_200px]">
+        <div className="relative">
+          <Search className="pointer-events-none absolute inset-y-0 left-3.5 my-auto h-4 w-4 text-slate-400" />
+          <input
+            type="search"
+            aria-label="Cari kepala keluarga atau jalan"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari kepala keluarga atau nama jalan"
+            className={`${inputClass()} pl-10`}
+          />
+        </div>
+        <select
+          aria-label="Filter RT"
+          value={rtFilter}
+          onChange={(e) => {
+            setRtFilter(e.target.value);
+            setPage(1);
+          }}
+          className={inputClass()}
+        >
+          <option value="">Semua RT</option>
+          {RT_OPTIONS.map(({ value, label }) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Filter status pemilahan"
+          value={statusFilter}
+          onChange={(e) => {
+            setStatusFilter(e.target.value as SortingStatus | '');
+            setPage(1);
+          }}
+          className={inputClass()}
+        >
+          <option value="">Semua Status</option>
+          {SORTING_OPTIONS.map(({ value, label }) => (
+            <option key={value} value={value}>
+              Memilah: {label}
+            </option>
+          ))}
+        </select>
+      </section>
 
       {renderContent()}
 
-      {!error && meta && <Pagination meta={meta} itemLabel="rumah" onPageChange={setPage} disabled={loading} />}
+      {!error && meta && (
+        <Pagination meta={meta} itemLabel="rumah" onPageChange={setPage} disabled={loading} />
+      )}
 
       {formOpen && <HouseFormModal onClose={() => setFormOpen(false)} onSaved={handleSaved} />}
       {selectedHouse && <HouseDetailModal house={selectedHouse} onClose={() => setSelectedHouse(null)} />}
