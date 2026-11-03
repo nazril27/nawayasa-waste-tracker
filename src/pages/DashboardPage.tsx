@@ -1,22 +1,22 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { ArrowRight, Home, Plus, Scale, UserPlus, Users } from 'lucide-react';
 import { EmptyState, ErrorState, ListSkeleton, Skeleton } from '@/components/ui/States';
 import { Button } from '@/components/ui/Button';
-import { Modal } from '@/components/ui/Modal';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { SortingDistribution } from '@/components/dashboard/SortingDistribution';
 import { RecentWasteList } from '@/components/dashboard/RecentWasteList';
+import { QuickWasteModal } from '@/components/dashboard/QuickWasteModal';
 import { HouseFormModal } from '@/components/houses/HouseFormModal';
-import { WasteForm } from '@/components/wastes/WasteForm';
 import { useAuth } from '@/context/AuthContext';
-import { useFetchList } from '@/hooks/useFetchList';
-import { houseApi } from '@/lib/api/houses';
+import { useDashboardSummary } from '@/hooks/useDashboardSummary';
+import { usePagedList } from '@/hooks/usePagedList';
 import { wasteApi } from '@/lib/api/wastes';
-import { formatNumber, formatWeight } from '@/lib/format';
-import { computeSortingDistribution, sortByNewest, sumWeight } from '@/lib/stats';
+import { formatNumber, formatPercent, formatWeight } from '@/lib/format';
 import type { PageKey } from '@/components/layout/AppShell';
 
 type QuickModal = 'house' | 'waste' | null;
+
+const RECENT_LIMIT = 5;
 
 interface DashboardPageProps {
   onNavigate: (page: PageKey) => void;
@@ -24,26 +24,16 @@ interface DashboardPageProps {
 
 export function DashboardPage({ onNavigate }: DashboardPageProps) {
   const { user } = useAuth();
-  const houses = useFetchList(houseApi.list);
-  const wastes = useFetchList(wasteApi.list);
+  const { summary, loading, error, reload } = useDashboardSummary(null);
+  const recent = usePagedList(wasteApi.listPage, 1, RECENT_LIMIT);
   const [quickModal, setQuickModal] = useState<QuickModal>(null);
-
-  const distribution = useMemo(() => computeSortingDistribution(houses.data), [houses.data]);
-  const totalWeight = sumWeight(wastes.data);
-  const recentWastes = sortByNewest(wastes.data).slice(0, 5);
-
-  const loading = houses.loading || wastes.loading;
-  const error = houses.error ?? wastes.error;
-  const reloadAll = () => {
-    houses.reload();
-    wastes.reload();
-  };
 
   const firstName = user?.name.split(' ')[0] ?? '';
 
   const handleSaved = () => {
     setQuickModal(null);
-    reloadAll();
+    reload();
+    recent.reload();
   };
 
   return (
@@ -66,45 +56,45 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
         </div>
       </section>
 
-      {error && !loading && <ErrorState message={error} onRetry={reloadAll} />}
+      {error && !loading && <ErrorState message={error} onRetry={reload} />}
 
-      {!error && (
+      {loading && !summary && (
+        <section className="grid gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }, (_, index) => (
+            <Skeleton key={index} className="h-36 rounded-2xl" />
+          ))}
+        </section>
+      )}
+
+      {summary && (
         <>
           <section className="grid gap-4 sm:grid-cols-3">
-            {loading ? (
-              Array.from({ length: 3 }, (_, index) => <Skeleton key={index} className="h-36 rounded-2xl" />)
-            ) : (
-              <>
-                <StatCard
-                  label="Total Rumah Terdata"
-                  value={formatNumber(distribution.total)}
-                  hint="Keluarga yang sudah didata"
-                  icon={Home}
-                  tone="emerald"
-                />
-                <StatCard
-                  label="Total Berat Sampah"
-                  value={formatWeight(totalWeight)}
-                  hint={`${formatNumber(wastes.data.length)} kali pencatatan`}
-                  icon={Scale}
-                  tone="sky"
-                />
-                <StatCard
-                  label="Rumah yang Memilah"
-                  value={`${distribution.percent.ya}%`}
-                  hint={`Sebagian ${distribution.percent.sebagian}% · Tidak ${distribution.percent.tidak}%`}
-                  icon={Users}
-                  tone="amber"
-                />
-              </>
-            )}
+            <StatCard
+              label="Total Rumah Terdata"
+              value={formatNumber(summary.overview.totalHouses)}
+              hint={`${formatNumber(summary.overview.totalFamilyMembers)} anggota keluarga`}
+              icon={Home}
+              tone="emerald"
+            />
+            <StatCard
+              label="Total Berat Sampah"
+              value={formatWeight(summary.overview.totalWasteWeightKg)}
+              hint={`${formatNumber(summary.overview.totalWasteRecords)} kali pencatatan`}
+              icon={Scale}
+              tone="sky"
+            />
+            <StatCard
+              label="Rumah yang Memilah"
+              value={`${formatPercent(summary.housesBySortingWaste.find((i) => i.isSortingWaste === 'ya')?.percent ?? 0)}%`}
+              hint={`${formatNumber(summary.overview.totalStudents)} mahasiswa KKN bertugas`}
+              icon={Users}
+              tone="amber"
+            />
           </section>
 
           <section className="grid gap-6 lg:grid-cols-5">
             <div className="lg:col-span-3">
-              {loading ? (
-                <Skeleton className="h-full min-h-72 rounded-2xl" />
-              ) : distribution.total === 0 ? (
+              {summary.overview.totalHouses === 0 ? (
                 <div className="flex h-full min-h-72 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white">
                   <EmptyState
                     title="Belum ada rumah terdata"
@@ -118,7 +108,7 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
                   />
                 </div>
               ) : (
-                <SortingDistribution distribution={distribution} />
+                <SortingDistribution total={summary.overview.totalHouses} items={summary.housesBySortingWaste} />
               )}
             </div>
 
@@ -135,31 +125,22 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
                 </button>
               </div>
 
-              {loading && <ListSkeleton rows={4} />}
-              {!loading && recentWastes.length === 0 && (
+              {recent.loading && recent.data.length === 0 && <ListSkeleton rows={4} />}
+              {!recent.loading && recent.error && <ErrorState message={recent.error} onRetry={recent.reload} />}
+              {!recent.loading && !recent.error && recent.data.length === 0 && (
                 <EmptyState
                   title="Belum ada sampah tercatat"
                   description="Catat sampah pertama dari rumah warga untuk melihat aktivitas terbaru."
                 />
               )}
-              {!loading && recentWastes.length > 0 && (
-                <RecentWasteList wastes={recentWastes} />
-              )}
+              {!recent.error && recent.data.length > 0 && <RecentWasteList wastes={recent.data} />}
             </div>
           </section>
         </>
       )}
 
       {quickModal === 'house' && <HouseFormModal onClose={() => setQuickModal(null)} onSaved={handleSaved} />}
-
-      <Modal
-        open={quickModal === 'waste'}
-        onClose={() => setQuickModal(null)}
-        title="Catat Sampah Cepat"
-        description="Pilih rumah, lalu isi berat dan jenis sampahnya."
-      >
-        <WasteForm houses={houses.data} onSaved={handleSaved} onCancel={() => setQuickModal(null)} />
-      </Modal>
+      {quickModal === 'waste' && <QuickWasteModal onClose={() => setQuickModal(null)} onSaved={handleSaved} />}
     </div>
   );
 }

@@ -1,7 +1,9 @@
 import type { SortingStatus, WasteType } from '@/types';
 
+export const rtLabel = (value: string): string => `RT ${Number(value)}`;
+
 export const RT_OPTIONS: { value: string; label: string }[] = ['01', '03', '04', '05', '06', '07'].map(
-  (value) => ({ value, label: `RT ${Number(value)}` }),
+  (value) => ({ value, label: rtLabel(value) }),
 );
 
 export const SORTING_OPTIONS: { value: SortingStatus; label: string }[] = [

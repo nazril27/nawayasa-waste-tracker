@@ -1,30 +1,4 @@
-import type { House, SortingStatus, WasteRecord } from '@/types';
-
-export interface SortingDistribution {
-  total: number;
-  counts: Record<SortingStatus, number>;
-  percent: Record<SortingStatus, number>;
-}
-
-export function computeSortingDistribution(houses: House[]): SortingDistribution {
-  const counts: Record<SortingStatus, number> = { ya: 0, sebagian: 0, tidak: 0 };
-  houses.forEach((house) => {
-    if (house.isSortingWaste in counts) counts[house.isSortingWaste] += 1;
-  });
-
-  const total = houses.length;
-  const toPercent = (count: number) => (total === 0 ? 0 : Math.round((count / total) * 100));
-
-  return {
-    total,
-    counts,
-    percent: {
-      ya: toPercent(counts.ya),
-      sebagian: toPercent(counts.sebagian),
-      tidak: toPercent(counts.tidak),
-    },
-  };
-}
+import type { WasteRecord } from '@/types';
 
 export function sumWeight(wastes: WasteRecord[]): number {
   return wastes.reduce((total, waste) => total + waste.weight, 0);

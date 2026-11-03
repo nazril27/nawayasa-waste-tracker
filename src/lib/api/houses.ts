@@ -1,5 +1,6 @@
-import { apiRequest } from './client';
-import type { House, HousePayload } from '@/types';
+import { apiRequest, apiRequestPage } from './client';
+import { fetchAllPages, pageQuery } from './pagination';
+import type { House, HousePayload, Paginated } from '@/types';
 
 function normalizeHouse(raw: House): House {
   return {
@@ -9,12 +10,14 @@ function normalizeHouse(raw: House): House {
   };
 }
 
+async function listPage(page: number, pageSize: number): Promise<Paginated<House>> {
+  const result = await apiRequestPage<House>(`/houses${pageQuery(page, pageSize)}`);
+  return { ...result, data: result.data.map(normalizeHouse) };
+}
+
 export const houseApi = {
-  async list(): Promise<House[]> {
-    const houses = await apiRequest<House[]>('/houses');
-    if (!Array.isArray(houses)) throw new Error('Data rumah dari server tidak valid.');
-    return houses.map(normalizeHouse);
-  },
+  listPage,
+  listAll: () => fetchAllPages(listPage),
 
   async getById(id: number): Promise<House> {
     const house = await apiRequest<House>(`/houses/${id}`);

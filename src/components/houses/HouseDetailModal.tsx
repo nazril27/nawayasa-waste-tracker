@@ -14,7 +14,7 @@ interface HouseDetailModalProps {
 }
 
 export function HouseDetailModal({ house, onClose }: HouseDetailModalProps) {
-  const { data: wastes, loading, error, reload } = useFetchList(wasteApi.list);
+  const { data: wastes, loading, error, reload } = useFetchList(wasteApi.listAll);
 
   const houseWastes = sortByNewest(wastes.filter((waste) => waste.houseId === house.id));
   const totalWeight = sumWeight(houseWastes);

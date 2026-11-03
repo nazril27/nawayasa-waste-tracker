@@ -1,16 +1,25 @@
+import { useState } from 'react';
 import { History, PencilLine } from 'lucide-react';
+import { Pagination } from '@/components/ui/Pagination';
 import { ErrorState, ListSkeleton, Skeleton } from '@/components/ui/States';
 import { WasteForm } from '@/components/wastes/WasteForm';
 import { WasteHistory } from '@/components/wastes/WasteHistory';
 import { useFetchList } from '@/hooks/useFetchList';
+import { usePagedList } from '@/hooks/usePagedList';
 import { houseApi } from '@/lib/api/houses';
+import { PAGE_SIZE } from '@/lib/api/pagination';
 import { wasteApi } from '@/lib/api/wastes';
+import { formatNumber } from '@/lib/format';
 
 export function WastesPage() {
-  const houses = useFetchList(houseApi.list);
-  const wastes = useFetchList(wasteApi.list);
+  const [page, setPage] = useState(1);
+  const houses = useFetchList(houseApi.listAll);
+  const wastes = usePagedList(wasteApi.listPage, page, PAGE_SIZE);
 
-  const historyCount = wastes.data.length;
+  const handleSaved = () => {
+    setPage(1);
+    wastes.reload();
+  };
 
   return (
     <div className="grid gap-6 lg:grid-cols-5">
@@ -34,7 +43,7 @@ export function WastesPage() {
                 Belum ada rumah terdata. Tambahkan rumah di menu Data Rumah terlebih dahulu.
               </div>
             )}
-            <WasteForm houses={houses.data} onSaved={wastes.reload} />
+            <WasteForm houses={houses.data} onSaved={handleSaved} />
           </>
         )}
       </section>
@@ -45,14 +54,14 @@ export function WastesPage() {
             <History className="h-5 w-5 text-slate-500" />
             <h2 className="text-base font-semibold text-slate-900">Riwayat Pengambilan Sampah</h2>
           </div>
-          {!wastes.loading && !wastes.error && (
+          {!wastes.loading && !wastes.error && wastes.meta && (
             <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-              {historyCount} catatan
+              {formatNumber(wastes.meta.total)} catatan
             </span>
           )}
         </div>
 
-        <div className="px-2 py-2 sm:px-4">
+        <div className="px-2 pb-4 sm:px-4">
           {wastes.loading && (
             <div className="p-4">
               <ListSkeleton rows={5} />
@@ -60,6 +69,9 @@ export function WastesPage() {
           )}
           {!wastes.loading && wastes.error && <ErrorState message={wastes.error} onRetry={wastes.reload} />}
           {!wastes.loading && !wastes.error && <WasteHistory wastes={wastes.data} />}
+          {!wastes.error && wastes.meta && (
+            <Pagination meta={wastes.meta} itemLabel="catatan" onPageChange={setPage} disabled={wastes.loading} />
+          )}
         </div>
       </section>
     </div>

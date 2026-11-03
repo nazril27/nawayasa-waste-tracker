@@ -47,6 +47,54 @@ export interface WasteRecord {
   updatedAt?: string;
 }
 
+export interface PageMeta {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
+export interface Paginated<T> extends PageMeta {
+  data: T[];
+}
+
+export interface SortingSummary {
+  isSortingWaste: SortingStatus;
+  houses: number;
+  percent: number;
+}
+
+export interface WasteTypeSummary {
+  typesOfWaste: WasteType;
+  records: number;
+  totalWasteWeightKg: number;
+}
+
+export interface RtSummary {
+  rt: string;
+  houses: number;
+  familyMembers: number;
+  wasteRecords: number;
+  totalWasteWeightKg: number;
+}
+
+export interface DashboardSummary {
+  generatedAt: string;
+  filter: { rt: string | null };
+  overview: {
+    totalStudents: number;
+    totalHouses: number;
+    totalFamilyMembers: number;
+    totalWasteRecords: number;
+    totalWasteWeightKg: number;
+    unassignedHouses: number;
+    unassignedWasteRecords: number;
+  };
+  housesBySortingWaste: SortingSummary[];
+  wastesByType: WasteTypeSummary[];
+  byRt: RtSummary[];
+}
+
 export interface LoginPayload {
   identifier: string;
   password: string;

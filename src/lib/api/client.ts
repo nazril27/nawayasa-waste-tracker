@@ -1,3 +1,5 @@
+import type { PageMeta, Paginated } from '@/types';
+
 const API_BASE_URL: string = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export class ApiError extends Error {
@@ -16,12 +18,14 @@ interface ApiEnvelope<T> {
   data?: T;
 }
 
+type ApiPayload<T> = ApiEnvelope<T> & Partial<PageMeta>;
+
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
 }
 
-export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function send<T>(path: string, options: RequestOptions): Promise<ApiPayload<T>> {
   const hasBody = options.body !== undefined;
 
   let response: Response;
@@ -35,9 +39,9 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     throw new ApiError('Tidak dapat terhubung ke server. Periksa koneksi Anda.', 0);
   }
 
-  let payload: ApiEnvelope<T> | null = null;
+  let payload: ApiPayload<T> | null = null;
   try {
-    payload = (await response.json()) as ApiEnvelope<T>;
+    payload = (await response.json()) as ApiPayload<T>;
   } catch {
     payload = null;
   }
@@ -50,7 +54,26 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     throw new ApiError(payload.message || 'Terjadi kesalahan pada server.', response.status);
   }
 
+  return payload;
+}
+
+export async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const payload = await send<T>(path, options);
   return payload.data as T;
+}
+
+export async function apiRequestPage<T>(path: string, options: RequestOptions = {}): Promise<Paginated<T>> {
+  const { data, total, page, pageSize, totalPages } = await send<T[]>(path, options);
+  if (
+    !Array.isArray(data) ||
+    typeof total !== 'number' ||
+    typeof page !== 'number' ||
+    typeof pageSize !== 'number' ||
+    typeof totalPages !== 'number'
+  ) {
+    throw new ApiError('Data halaman dari server tidak valid.', 500);
+  }
+  return { data, total, page, pageSize, totalPages };
 }
 
 export function getErrorMessage(error: unknown): string {

@@ -1,5 +1,6 @@
-import { apiRequest } from './client';
-import type { WasteRecord, WastePayload } from '@/types';
+import { apiRequest, apiRequestPage } from './client';
+import { fetchAllPages, pageQuery } from './pagination';
+import type { Paginated, WasteRecord, WastePayload } from '@/types';
 
 function normalizeWaste(raw: WasteRecord): WasteRecord {
   return {
@@ -10,12 +11,14 @@ function normalizeWaste(raw: WasteRecord): WasteRecord {
   };
 }
 
+async function listPage(page: number, pageSize: number): Promise<Paginated<WasteRecord>> {
+  const result = await apiRequestPage<WasteRecord>(`/wastes${pageQuery(page, pageSize)}`);
+  return { ...result, data: result.data.map(normalizeWaste) };
+}
+
 export const wasteApi = {
-  async list(): Promise<WasteRecord[]> {
-    const wastes = await apiRequest<WasteRecord[]>('/wastes');
-    if (!Array.isArray(wastes)) throw new Error('Data sampah dari server tidak valid.');
-    return wastes.map(normalizeWaste);
-  },
+  listPage,
+  listAll: () => fetchAllPages(listPage),
 
   async getById(id: number): Promise<WasteRecord> {
     const waste = await apiRequest<WasteRecord>(`/wastes/${id}`);

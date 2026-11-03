@@ -1,6 +1,6 @@
-import type { SortingDistribution as Distribution } from '@/lib/stats';
-import type { SortingStatus } from '@/types';
+import { formatPercent } from '@/lib/format';
 import { SORTING_OPTIONS } from '@/lib/labels';
+import type { SortingStatus, SortingSummary } from '@/types';
 
 const SEGMENT_CLASS: Record<SortingStatus, string> = {
   ya: 'stroke-emerald-500',
@@ -17,19 +17,27 @@ const BAR_CLASS: Record<SortingStatus, string> = {
 const RADIUS = 52;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-export function SortingDistribution({ distribution }: { distribution: Distribution }) {
-  const { total, counts, percent } = distribution;
+interface SortingDistributionProps {
+  total: number;
+  items: SortingSummary[];
+}
+
+export function SortingDistribution({ total, items }: SortingDistributionProps) {
+  const rows = SORTING_OPTIONS.map(({ value, label }) => {
+    const match = items.find((item) => item.isSortingWaste === value);
+    return { value, label, houses: match?.houses ?? 0, percent: match?.percent ?? 0 };
+  });
 
   let offset = 0;
-  const segments = SORTING_OPTIONS.map(({ value }) => {
-    const length = total === 0 ? 0 : (counts[value] / total) * CIRCUMFERENCE;
-    const segment = { value, length, offset };
+  const segments = rows.map((row) => {
+    const length = total === 0 ? 0 : (row.houses / total) * CIRCUMFERENCE;
+    const segment = { value: row.value, length, offset };
     offset += length;
     return segment;
   });
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="h-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <h3 className="text-base font-semibold text-slate-900">Status Pemilahan Sampah</h3>
       <p className="mt-1 text-sm text-slate-500">Distribusi rumah berdasarkan kebiasaan memilah.</p>
 
@@ -59,18 +67,18 @@ export function SortingDistribution({ distribution }: { distribution: Distributi
         </div>
 
         <ul className="w-full flex-1 space-y-4">
-          {SORTING_OPTIONS.map(({ value, label }) => (
-            <li key={value}>
+          {rows.map((row) => (
+            <li key={row.value}>
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium text-slate-700">{label}</span>
+                <span className="font-medium text-slate-700">{row.label}</span>
                 <span className="text-slate-500">
-                  {counts[value]} rumah · <span className="font-semibold text-slate-900">{percent[value]}%</span>
+                  {row.houses} rumah · <span className="font-semibold text-slate-900">{formatPercent(row.percent)}%</span>
                 </span>
               </div>
               <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
                 <div
-                  className={`h-full rounded-full transition-[width] duration-700 ease-out ${BAR_CLASS[value]}`}
-                  style={{ width: `${percent[value]}%` }}
+                  className={`h-full rounded-full transition-[width] duration-700 ease-out ${BAR_CLASS[row.value]}`}
+                  style={{ width: `${row.percent}%` }}
                 />
               </div>
             </li>

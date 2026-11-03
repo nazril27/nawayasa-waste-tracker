@@ -16,6 +16,10 @@ export function formatNumber(value: number): string {
   return value.toLocaleString('id-ID');
 }
 
+export function formatPercent(value: number): string {
+  return value.toLocaleString('id-ID', { maximumFractionDigits: 1 });
+}
+
 export function formatDateTime(iso?: string): string {
   if (!iso) return '-';
   const date = new Date(iso);
