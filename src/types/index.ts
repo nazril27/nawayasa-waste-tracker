@@ -93,6 +93,16 @@ export interface DashboardSummary {
   housesBySortingWaste: SortingSummary[];
   wastesByType: WasteTypeSummary[];
   byRt: RtSummary[];
+  collectors: CollectorSummary[];
+}
+
+export interface CollectorSummary {
+  userId: number;
+  name: string;
+  nim: string;
+  houses: number;
+  wasteRecords: number;
+  totalWasteWeightKg: number;
 }
 
 export interface LoginPayload {

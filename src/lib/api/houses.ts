@@ -6,6 +6,7 @@ export type HouseFilters = {
   search?: string;
   rt?: string;
   isSortingWaste?: SortingStatus;
+  userId?: string;
 };
 
 function normalizeHouse(raw: House): House {

@@ -7,6 +7,7 @@ import { EmptyState, ErrorState, ListSkeleton } from '@/components/ui/States';
 import { HouseDetailModal } from '@/components/houses/HouseDetailModal';
 import { HouseFormModal } from '@/components/houses/HouseFormModal';
 import { HouseList } from '@/components/houses/HouseList';
+import { useDashboardSummary } from '@/hooks/useDashboardSummary';
 import { usePagedList } from '@/hooks/usePagedList';
 import { houseApi, type HouseFilters } from '@/lib/api/houses';
 import { PAGE_SIZE } from '@/lib/api/pagination';
@@ -22,8 +23,11 @@ export function HousesPage() {
   const [appliedSearch, setAppliedSearch] = useState('');
   const [rtFilter, setRtFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<SortingStatus | ''>('');
+  const [studentFilter, setStudentFilter] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [selectedHouse, setSelectedHouse] = useState<House | null>(null);
+  const { summary } = useDashboardSummary(null);
+  const students = summary?.collectors ?? [];
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -38,20 +42,22 @@ export function HousesPage() {
       search: appliedSearch || undefined,
       rt: rtFilter || undefined,
       isSortingWaste: statusFilter || undefined,
+      userId: studentFilter || undefined,
     }),
-    [appliedSearch, rtFilter, statusFilter],
+    [appliedSearch, rtFilter, statusFilter, studentFilter],
   );
   const fetchHouses = useCallback((p: number, s: number) => houseApi.listPage(p, s, filters), [filters]);
 
   const { data: houses, meta, loading, error, reload } = usePagedList(fetchHouses, page, PAGE_SIZE);
   const total = meta?.total ?? 0;
-  const hasFilters = Boolean(appliedSearch || rtFilter || statusFilter);
+  const hasFilters = Boolean(appliedSearch || rtFilter || statusFilter || studentFilter);
 
   const resetFilters = () => {
     setSearch('');
     setAppliedSearch('');
     setRtFilter('');
     setStatusFilter('');
+    setStudentFilter('');
     setPage(1);
   };
 
@@ -108,7 +114,7 @@ export function HousesPage() {
         </Button>
       </section>
 
-      <section className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-[1fr_160px_200px]">
+      <section className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-[1fr_160px_200px_220px]">
         <div className="relative">
           <Search className="pointer-events-none absolute inset-y-0 left-3.5 my-auto h-4 w-4 text-slate-400" />
           <input
@@ -149,6 +155,22 @@ export function HousesPage() {
           {SORTING_OPTIONS.map(({ value, label }) => (
             <option key={value} value={value}>
               Memilah: {label}
+            </option>
+          ))}
+        </select>
+        <select
+          aria-label="Filter mahasiswa"
+          value={studentFilter}
+          onChange={(e) => {
+            setStudentFilter(e.target.value);
+            setPage(1);
+          }}
+          className={inputClass()}
+        >
+          <option value="">Semua Mahasiswa</option>
+          {students.map((student) => (
+            <option key={student.userId} value={String(student.userId)}>
+              {student.name}
             </option>
           ))}
         </select>
