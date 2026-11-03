@@ -7,10 +7,11 @@ import { EmptyState, ErrorState, ListSkeleton } from '@/components/ui/States';
 import { HouseDetailModal } from '@/components/houses/HouseDetailModal';
 import { HouseFormModal } from '@/components/houses/HouseFormModal';
 import { HouseList } from '@/components/houses/HouseList';
-import { useDashboardSummary } from '@/hooks/useDashboardSummary';
+import { useFetchList } from '@/hooks/useFetchList';
 import { usePagedList } from '@/hooks/usePagedList';
 import { houseApi, type HouseFilters } from '@/lib/api/houses';
 import { PAGE_SIZE } from '@/lib/api/pagination';
+import { userApi } from '@/lib/api/users';
 import { formatNumber } from '@/lib/format';
 import { RT_OPTIONS, SORTING_OPTIONS } from '@/lib/labels';
 import type { House, SortingStatus } from '@/types';
@@ -26,8 +27,7 @@ export function HousesPage() {
   const [studentFilter, setStudentFilter] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [selectedHouse, setSelectedHouse] = useState<House | null>(null);
-  const { summary } = useDashboardSummary(null);
-  const students = summary?.collectors ?? [];
+  const { data: students } = useFetchList(userApi.listAll);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -169,7 +169,7 @@ export function HousesPage() {
         >
           <option value="">Semua Mahasiswa</option>
           {students.map((student) => (
-            <option key={student.userId} value={String(student.userId)}>
+            <option key={student.id} value={String(student.id)}>
               {student.name}
             </option>
           ))}
