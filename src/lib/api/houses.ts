@@ -1,6 +1,6 @@
 import { apiRequest, apiRequestPage } from './client';
 import { fetchAllPages, pageQuery } from './pagination';
-import type { House, HousePayload, Paginated, SortingStatus } from '@/types';
+import type { House, HousePayload, HouseUpdatePayload, Paginated, SortingStatus } from '@/types';
 
 export type HouseFilters = {
   search?: string;
@@ -33,6 +33,11 @@ export const houseApi = {
 
   async create(payload: HousePayload): Promise<House> {
     const house = await apiRequest<House>('/houses', { method: 'POST', body: payload });
+    return normalizeHouse(house);
+  },
+
+  async update(id: number, payload: HouseUpdatePayload): Promise<House> {
+    const house = await apiRequest<House>(`/houses/${id}`, { method: 'PATCH', body: payload });
     return normalizeHouse(house);
   },
 };

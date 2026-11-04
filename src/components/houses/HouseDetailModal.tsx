@@ -1,4 +1,5 @@
-import { CalendarClock, MapPin, Scale, UserCheck, Users } from 'lucide-react';
+import { CalendarClock, MapPin, Pencil, Scale, UserCheck, Users } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 import { ErrorState, EmptyState, ListSkeleton } from '@/components/ui/States';
 import { SortingBadge, WasteTypeBadge } from '@/components/ui/Badges';
 import { Modal } from '@/components/ui/Modal';
@@ -11,16 +12,28 @@ import type { House } from '@/types';
 interface HouseDetailModalProps {
   house: House;
   onClose: () => void;
+  onEdit: (house: House) => void;
 }
 
-export function HouseDetailModal({ house, onClose }: HouseDetailModalProps) {
+export function HouseDetailModal({ house, onClose, onEdit }: HouseDetailModalProps) {
   const { data: wastes, loading, error, reload } = useFetchList(wasteApi.listAll);
 
   const houseWastes = sortByNewest(wastes.filter((waste) => waste.houseId === house.id));
   const totalWeight = sumWeight(houseWastes);
 
   return (
-    <Modal open onClose={onClose} title="Detail Rumah" size="lg">
+    <Modal
+      open
+      onClose={onClose}
+      title="Detail Rumah"
+      size="lg"
+      footer={
+        <Button variant="secondary" onClick={() => onEdit(house)}>
+          <Pencil className="h-4 w-4" />
+          Edit Data Rumah
+        </Button>
+      }
+    >
       <div className="space-y-6">
         <div className="flex items-start gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-xl font-bold text-white">

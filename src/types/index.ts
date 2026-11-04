@@ -117,6 +117,15 @@ export interface HousePayload {
   houseNumber?: string;
 }
 
+export interface HouseUpdatePayload {
+  rt: string;
+  headOfFamilyName: string;
+  numberOfFamilyMembers: number;
+  isSortingWaste: SortingStatus;
+  streetName: string | null;
+  houseNumber: string | null;
+}
+
 export interface WastePayload {
   weight: number;
   typesOfWaste: WasteType;

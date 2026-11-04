@@ -27,6 +27,7 @@ export function HousesPage() {
   const [studentFilter, setStudentFilter] = useState('');
   const [formOpen, setFormOpen] = useState(false);
   const [selectedHouse, setSelectedHouse] = useState<House | null>(null);
+  const [editingHouse, setEditingHouse] = useState<House | null>(null);
   const { data: students } = useFetchList(userApi.listAll);
 
   useEffect(() => {
@@ -62,6 +63,7 @@ export function HousesPage() {
   };
 
   const handleSaved = () => {
+    setEditingHouse(null);
     setFormOpen(false);
     setPage(1);
     reload();
@@ -183,7 +185,19 @@ export function HousesPage() {
       )}
 
       {formOpen && <HouseFormModal onClose={() => setFormOpen(false)} onSaved={handleSaved} />}
-      {selectedHouse && <HouseDetailModal house={selectedHouse} onClose={() => setSelectedHouse(null)} />}
+      {editingHouse && (
+        <HouseFormModal house={editingHouse} onClose={() => setEditingHouse(null)} onSaved={handleSaved} />
+      )}
+      {selectedHouse && (
+        <HouseDetailModal
+          house={selectedHouse}
+          onClose={() => setSelectedHouse(null)}
+          onEdit={(house) => {
+            setSelectedHouse(null);
+            setEditingHouse(house);
+          }}
+        />
+      )}
     </div>
   );
 }

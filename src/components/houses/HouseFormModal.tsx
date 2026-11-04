@@ -7,10 +7,11 @@ import { Modal } from '@/components/ui/Modal';
 import { houseApi } from '@/lib/api/houses';
 import { getErrorMessage } from '@/lib/api/client';
 import { getStoredUser } from '@/lib/session';
-import { RT_OPTIONS, SORTING_OPTIONS } from '@/lib/labels';
-import type { HousePayload, SortingStatus } from '@/types';
+import { RT_OPTIONS, SORTING_OPTIONS, rtLabel } from '@/lib/labels';
+import type { House, HousePayload, HouseUpdatePayload, SortingStatus } from '@/types';
 
 interface HouseFormModalProps {
+  house?: House;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -41,6 +42,17 @@ const SORTING_SELECTED_CLASS: Record<SortingStatus, string> = {
   tidak: 'border-red-400 bg-red-50 text-red-700 ring-4 ring-red-100',
 };
 
+function toFormState(house: House): HouseFormState {
+  return {
+    rt: house.rt,
+    headOfFamilyName: house.headOfFamilyName,
+    numberOfFamilyMembers: String(house.numberOfFamilyMembers),
+    isSortingWaste: house.isSortingWaste,
+    streetName: house.streetName ?? '',
+    houseNumber: house.houseNumber ? String(house.houseNumber) : '',
+  };
+}
+
 function validate(form: HouseFormState): HouseFormErrors {
   const errors: HouseFormErrors = {};
   if (!form.rt) errors.rt = 'Pilih RT terlebih dahulu.';
@@ -57,10 +69,16 @@ function validate(form: HouseFormState): HouseFormErrors {
   return errors;
 }
 
-export function HouseFormModal({ onClose, onSaved }: HouseFormModalProps) {
-  const [form, setForm] = useState<HouseFormState>(EMPTY_FORM);
+export function HouseFormModal({ house, onClose, onSaved }: HouseFormModalProps) {
+  const isEdit = house !== undefined;
+  const [form, setForm] = useState<HouseFormState>(() => (house ? toFormState(house) : EMPTY_FORM));
   const [errors, setErrors] = useState<HouseFormErrors>({});
   const [submitting, setSubmitting] = useState(false);
+
+  const rtOptions =
+    house && !RT_OPTIONS.some((option) => option.value === house.rt)
+      ? [...RT_OPTIONS, { value: house.rt, label: rtLabel(house.rt) }]
+      : RT_OPTIONS;
 
   const updateField = <K extends keyof HouseFormState>(field: K, value: HouseFormState[K]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -73,31 +91,47 @@ export function HouseFormModal({ onClose, onSaved }: HouseFormModalProps) {
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0 || !form.isSortingWaste) return;
 
-    const currentUser = getStoredUser();
-    if (!currentUser) {
-      toast.error('Sesi tidak ditemukan', { description: 'Silakan masuk kembali untuk menambahkan rumah.' });
-      return;
-    }
-
-    const payload: HousePayload = {
-      userId: currentUser.id,
+    const fields = {
       rt: form.rt,
       headOfFamilyName: form.headOfFamilyName.trim(),
       numberOfFamilyMembers: Number(form.numberOfFamilyMembers),
       isSortingWaste: form.isSortingWaste,
-      ...(form.streetName.trim() ? { streetName: form.streetName.trim() } : {}),
-      ...(form.houseNumber.trim() ? { houseNumber: form.houseNumber.trim() } : {}),
     };
 
     setSubmitting(true);
     try {
-      await houseApi.create(payload);
-      toast.success('Rumah berhasil ditambahkan', {
-        description: `Keluarga ${payload.headOfFamilyName} di RT ${payload.rt} telah terdata.`,
-      });
+      if (house) {
+        const payload: HouseUpdatePayload = {
+          ...fields,
+          streetName: form.streetName.trim() || null,
+          houseNumber: form.houseNumber.trim() || null,
+        };
+        await houseApi.update(house.id, payload);
+        toast.success('Data rumah berhasil diperbarui', {
+          description: `Data keluarga ${payload.headOfFamilyName} di ${rtLabel(payload.rt)} telah diperbarui.`,
+        });
+      } else {
+        const currentUser = getStoredUser();
+        if (!currentUser) {
+          toast.error('Sesi tidak ditemukan', { description: 'Silakan masuk kembali untuk menambahkan rumah.' });
+          return;
+        }
+        const payload: HousePayload = {
+          userId: currentUser.id,
+          ...fields,
+          ...(form.streetName.trim() ? { streetName: form.streetName.trim() } : {}),
+          ...(form.houseNumber.trim() ? { houseNumber: form.houseNumber.trim() } : {}),
+        };
+        await houseApi.create(payload);
+        toast.success('Rumah berhasil ditambahkan', {
+          description: `Keluarga ${payload.headOfFamilyName} di ${rtLabel(payload.rt)} telah terdata.`,
+        });
+      }
       onSaved();
     } catch (err) {
-      toast.error('Gagal menyimpan data rumah', { description: getErrorMessage(err) });
+      toast.error(isEdit ? 'Gagal memperbarui data rumah' : 'Gagal menyimpan data rumah', {
+        description: getErrorMessage(err),
+      });
     } finally {
       setSubmitting(false);
     }
@@ -107,8 +141,10 @@ export function HouseFormModal({ onClose, onSaved }: HouseFormModalProps) {
     <Modal
       open
       onClose={onClose}
-      title="Tambah Rumah"
-      description="Lengkapi data keluarga yang tinggal di rumah ini."
+      title={isEdit ? 'Edit Data Rumah' : 'Tambah Rumah'}
+      description={
+        isEdit ? 'Perbarui data keluarga yang tinggal di rumah ini.' : 'Lengkapi data keluarga yang tinggal di rumah ini.'
+      }
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={submitting}>
@@ -116,7 +152,7 @@ export function HouseFormModal({ onClose, onSaved }: HouseFormModalProps) {
           </Button>
           <Button type="submit" form="house-form" loading={submitting}>
             {!submitting && <Save className="h-4 w-4" />}
-            Simpan Rumah
+            {isEdit ? 'Simpan Perubahan' : 'Simpan Rumah'}
           </Button>
         </>
       }
@@ -131,7 +167,7 @@ export function HouseFormModal({ onClose, onSaved }: HouseFormModalProps) {
               className={inputClass(!!errors.rt)}
             >
               <option value="">Pilih RT</option>
-              {RT_OPTIONS.map(({ value, label }) => (
+              {rtOptions.map(({ value, label }) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
