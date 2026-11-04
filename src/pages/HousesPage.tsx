@@ -196,6 +196,11 @@ export function HousesPage() {
             setSelectedHouse(null);
             setEditingHouse(house);
           }}
+          onDeleted={() => {
+            setSelectedHouse(null);
+            setPage(1);
+            reload();
+          }}
         />
       )}
     </div>

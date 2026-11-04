@@ -40,4 +40,8 @@ export const houseApi = {
     const house = await apiRequest<House>(`/houses/${id}`, { method: 'PATCH', body: payload });
     return normalizeHouse(house);
   },
+
+  async remove(id: number): Promise<void> {
+    await apiRequest<unknown>(`/houses/${id}`, { method: 'DELETE' });
+  },
 };

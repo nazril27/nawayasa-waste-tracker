@@ -1,10 +1,14 @@
-import { CalendarClock, MapPin, Pencil, Scale, UserCheck, Users } from 'lucide-react';
+import { useState } from 'react';
+import { CalendarClock, MapPin, Pencil, Scale, Trash2, UserCheck, Users } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
 import { ErrorState, EmptyState, ListSkeleton } from '@/components/ui/States';
 import { SortingBadge, WasteTypeBadge } from '@/components/ui/Badges';
 import { Modal } from '@/components/ui/Modal';
-import { useFetchList } from '@/hooks/useFetchList';
+import { ApiError, getErrorMessage } from '@/lib/api/client';
+import { houseApi } from '@/lib/api/houses';
 import { wasteApi } from '@/lib/api/wastes';
+import { useFetchList } from '@/hooks/useFetchList';
 import { formatAddress, formatDateTime, formatNumber, formatWeight, getPersonInCharge } from '@/lib/format';
 import { sortByNewest, sumWeight } from '@/lib/stats';
 import type { House } from '@/types';
@@ -13,28 +17,71 @@ interface HouseDetailModalProps {
   house: House;
   onClose: () => void;
   onEdit: (house: House) => void;
+  onDeleted: () => void;
 }
 
-export function HouseDetailModal({ house, onClose, onEdit }: HouseDetailModalProps) {
+export function HouseDetailModal({ house, onClose, onEdit, onDeleted }: HouseDetailModalProps) {
   const { data: wastes, loading, error, reload } = useFetchList(wasteApi.listAll);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const houseWastes = sortByNewest(wastes.filter((waste) => waste.houseId === house.id));
   const totalWeight = sumWeight(houseWastes);
 
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await houseApi.remove(house.id);
+      toast.success('Data rumah berhasil dihapus', {
+        description: `Keluarga ${house.headOfFamilyName} telah dihapus dari data.`,
+      });
+      onDeleted();
+    } catch (err) {
+      const description =
+        err instanceof ApiError && err.status === 409
+          ? 'Rumah ini masih memiliki catatan sampah, sehingga tidak bisa dihapus.'
+          : getErrorMessage(err);
+      toast.error('Gagal menghapus data rumah', { description });
+      setDeleting(false);
+      setConfirmingDelete(false);
+    }
+  };
+
+  const footer = confirmingDelete ? (
+    <>
+      <Button variant="secondary" onClick={() => setConfirmingDelete(false)} disabled={deleting}>
+        Batal
+      </Button>
+      <Button variant="danger" onClick={handleDelete} loading={deleting}>
+        Ya, Hapus Rumah
+      </Button>
+    </>
+  ) : (
+    <>
+      <Button variant="ghost" className="text-red-600 hover:bg-red-50 hover:text-red-700 sm:mr-auto" onClick={() => setConfirmingDelete(true)}>
+        <Trash2 className="h-4 w-4" />
+        Hapus
+      </Button>
+      <Button variant="secondary" onClick={() => onEdit(house)}>
+        <Pencil className="h-4 w-4" />
+        Edit Data Rumah
+      </Button>
+    </>
+  );
+
   return (
-    <Modal
-      open
-      onClose={onClose}
-      title="Detail Rumah"
-      size="lg"
-      footer={
-        <Button variant="secondary" onClick={() => onEdit(house)}>
-          <Pencil className="h-4 w-4" />
-          Edit Data Rumah
-        </Button>
-      }
-    >
+    <Modal open onClose={onClose} title="Detail Rumah" size="lg" footer={footer}>
       <div className="space-y-6">
+        {confirmingDelete && (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">
+            <p className="font-semibold">Hapus data rumah ini?</p>
+            <p className="mt-1 text-red-700">
+              Data keluarga {house.headOfFamilyName} akan dihapus permanen. Rumah yang sudah memiliki catatan sampah tidak
+              bisa dihapus.
+            </p>
+          </div>
+        )}
+
         <div className="flex items-start gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-xl font-bold text-white">
             {house.headOfFamilyName.charAt(0).toUpperCase()}
