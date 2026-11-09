@@ -82,6 +82,20 @@ export function HouseDetailModal({ house, onClose, onEdit, onDeleted }: HouseDet
           </div>
         )}
 
+        {house.imageUrl ? (
+          <div className="overflow-hidden rounded-xl border border-slate-200">
+            <img
+              src={house.imageUrl}
+              alt={`Foto rumah ${house.headOfFamilyName}`}
+              className="h-48 w-full object-cover sm:h-64"
+            />
+          </div>
+        ) : (
+          <div className="flex h-32 items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-400">
+            Tidak ada foto rumah
+          </div>
+        )}
+
         <div className="flex items-start gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-xl font-bold text-white">
             {house.headOfFamilyName.charAt(0).toUpperCase()}

@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
 import { Field, inputClass } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
+import { HouseImagePicker } from '@/components/houses/HouseImagePicker';
 import { houseApi } from '@/lib/api/houses';
 import { getErrorMessage } from '@/lib/api/client';
 import { getStoredUser } from '@/lib/session';
@@ -73,6 +74,7 @@ export function HouseFormModal({ house, onClose, onSaved }: HouseFormModalProps)
   const isEdit = house !== undefined;
   const [form, setForm] = useState<HouseFormState>(() => (house ? toFormState(house) : EMPTY_FORM));
   const [errors, setErrors] = useState<HouseFormErrors>({});
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const rtOptions =
@@ -106,7 +108,7 @@ export function HouseFormModal({ house, onClose, onSaved }: HouseFormModalProps)
           streetName: form.streetName.trim() || null,
           houseNumber: form.houseNumber.trim() || null,
         };
-        await houseApi.update(house.id, payload);
+        await houseApi.update(house.id, payload, imageFile ?? undefined);
         toast.success('Data rumah berhasil diperbarui', {
           description: `Data keluarga ${payload.headOfFamilyName} di ${rtLabel(payload.rt)} telah diperbarui.`,
         });
@@ -122,7 +124,7 @@ export function HouseFormModal({ house, onClose, onSaved }: HouseFormModalProps)
           ...(form.streetName.trim() ? { streetName: form.streetName.trim() } : {}),
           ...(form.houseNumber.trim() ? { houseNumber: form.houseNumber.trim() } : {}),
         };
-        await houseApi.create(payload);
+        await houseApi.create(payload, imageFile ?? undefined);
         toast.success('Rumah berhasil ditambahkan', {
           description: `Keluarga ${payload.headOfFamilyName} di ${rtLabel(payload.rt)} telah terdata.`,
         });
@@ -158,6 +160,12 @@ export function HouseFormModal({ house, onClose, onSaved }: HouseFormModalProps)
       }
     >
       <form id="house-form" onSubmit={handleSubmit} noValidate className="space-y-5">
+        <HouseImagePicker
+          currentImageUrl={house?.imageUrl ?? null}
+          selectedFile={imageFile}
+          onSelect={setImageFile}
+        />
+
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="RT" htmlFor="house-rt" error={errors.rt} required>
             <select

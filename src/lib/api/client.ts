@@ -27,13 +27,14 @@ interface RequestOptions {
 
 async function send<T>(path: string, options: RequestOptions): Promise<ApiPayload<T>> {
   const hasBody = options.body !== undefined;
+  const isFormData = options.body instanceof FormData;
 
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       method: options.method ?? 'GET',
-      headers: hasBody ? { 'Content-Type': 'application/json' } : undefined,
-      body: hasBody ? JSON.stringify(options.body) : undefined,
+      headers: hasBody && !isFormData ? { 'Content-Type': 'application/json' } : undefined,
+      body: hasBody ? (isFormData ? (options.body as FormData) : JSON.stringify(options.body)) : undefined,
     });
   } catch {
     throw new ApiError('Tidak dapat terhubung ke server. Periksa koneksi Anda.', 0);

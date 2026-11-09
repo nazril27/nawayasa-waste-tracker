@@ -22,6 +22,16 @@ async function listPage(page: number, pageSize: number, filters: HouseFilters = 
   return { ...result, data: result.data.map(normalizeHouse) };
 }
 
+function buildHouseFormData(payload: object, file: File): FormData {
+  const formData = new FormData();
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value === undefined) return;
+    formData.append(key, value === null ? '' : String(value));
+  });
+  formData.append('file', file);
+  return formData;
+}
+
 export const houseApi = {
   listPage,
   listAll: () => fetchAllPages(listPage),
@@ -31,13 +41,15 @@ export const houseApi = {
     return normalizeHouse(house);
   },
 
-  async create(payload: HousePayload): Promise<House> {
-    const house = await apiRequest<House>('/houses', { method: 'POST', body: payload });
+  async create(payload: HousePayload, file?: File): Promise<House> {
+    const body = file ? buildHouseFormData(payload, file) : payload;
+    const house = await apiRequest<House>('/houses', { method: 'POST', body });
     return normalizeHouse(house);
   },
 
-  async update(id: number, payload: HouseUpdatePayload): Promise<House> {
-    const house = await apiRequest<House>(`/houses/${id}`, { method: 'PATCH', body: payload });
+  async update(id: number, payload: HouseUpdatePayload, file?: File): Promise<House> {
+    const body = file ? buildHouseFormData(payload, file) : payload;
+    const house = await apiRequest<House>(`/houses/${id}`, { method: 'PATCH', body });
     return normalizeHouse(house);
   },
 

@@ -26,6 +26,8 @@ export interface House {
   houseNumber?: string | null;
   userId?: User['id'] | null;
   user?: UserSummary | null;
+  imageUrl?: string | null;
+  imagePublicId?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
