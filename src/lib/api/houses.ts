@@ -25,8 +25,8 @@ async function listPage(page: number, pageSize: number, filters: HouseFilters = 
 function buildHouseFormData(payload: object, file: File): FormData {
   const formData = new FormData();
   Object.entries(payload).forEach(([key, value]) => {
-    if (value === undefined) return;
-    formData.append(key, value === null ? '' : String(value));
+    if (value === undefined || value === null) return;
+    formData.append(key, String(value));
   });
   formData.append('file', file);
   return formData;
