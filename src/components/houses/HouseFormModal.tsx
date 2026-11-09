@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Field, inputClass } from '@/components/ui/Field';
 import { Modal } from '@/components/ui/Modal';
 import { HouseImagePicker } from '@/components/houses/HouseImagePicker';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 import { houseApi } from '@/lib/api/houses';
 import { getErrorMessage } from '@/lib/api/client';
 import { getStoredUser } from '@/lib/session';
@@ -75,6 +76,7 @@ export function HouseFormModal({ house, onClose, onSaved }: HouseFormModalProps)
   const [form, setForm] = useState<HouseFormState>(() => (house ? toFormState(house) : EMPTY_FORM));
   const [errors, setErrors] = useState<HouseFormErrors>({});
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isImageRemoved, setIsImageRemoved] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const rtOptions =
@@ -102,13 +104,25 @@ export function HouseFormModal({ house, onClose, onSaved }: HouseFormModalProps)
 
     setSubmitting(true);
     try {
+      let imageUploadResult: { secure_url: string; public_id: string } | null = null;
+      if (imageFile) {
+        toast.info('Mengunggah foto rumah...', { id: 'upload-toast' });
+        imageUploadResult = await uploadToCloudinary(imageFile);
+        toast.dismiss('upload-toast');
+      }
+
       if (house) {
         const payload: HouseUpdatePayload = {
           ...fields,
           streetName: form.streetName.trim() || null,
           houseNumber: form.houseNumber.trim() || null,
+          ...(imageUploadResult
+            ? { imageUrl: imageUploadResult.secure_url, imagePublicId: imageUploadResult.public_id }
+            : isImageRemoved
+            ? { imageUrl: null, imagePublicId: null }
+            : {}),
         };
-        await houseApi.update(house.id, payload, imageFile ?? undefined);
+        await houseApi.update(house.id, payload);
         toast.success('Data rumah berhasil diperbarui', {
           description: `Data keluarga ${payload.headOfFamilyName} di ${rtLabel(payload.rt)} telah diperbarui.`,
         });
@@ -123,14 +137,18 @@ export function HouseFormModal({ house, onClose, onSaved }: HouseFormModalProps)
           ...fields,
           ...(form.streetName.trim() ? { streetName: form.streetName.trim() } : {}),
           ...(form.houseNumber.trim() ? { houseNumber: form.houseNumber.trim() } : {}),
+          ...(imageUploadResult
+            ? { imageUrl: imageUploadResult.secure_url, imagePublicId: imageUploadResult.public_id }
+            : {}),
         };
-        await houseApi.create(payload, imageFile ?? undefined);
+        await houseApi.create(payload);
         toast.success('Rumah berhasil ditambahkan', {
           description: `Keluarga ${payload.headOfFamilyName} di ${rtLabel(payload.rt)} telah terdata.`,
         });
       }
       onSaved();
     } catch (err) {
+      toast.dismiss('upload-toast');
       toast.error(isEdit ? 'Gagal memperbarui data rumah' : 'Gagal menyimpan data rumah', {
         description: getErrorMessage(err),
       });
@@ -160,11 +178,35 @@ export function HouseFormModal({ house, onClose, onSaved }: HouseFormModalProps)
       }
     >
       <form id="house-form" onSubmit={handleSubmit} noValidate className="space-y-5">
-        <HouseImagePicker
-          currentImageUrl={house?.imageUrl ?? null}
-          selectedFile={imageFile}
-          onSelect={setImageFile}
-        />
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-slate-700">
+            Memilah Sampah<span className="ml-0.5 text-red-500">*</span>
+          </p>
+          <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Memilah sampah">
+            {SORTING_OPTIONS.map(({ value, label }) => {
+              const selected = form.isSortingWaste === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => updateField('isSortingWaste', value)}
+                  className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 ${
+                    selected ? SORTING_SELECTED_CLASS[value] : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          {errors.isSortingWaste && (
+            <p className="text-xs font-medium text-red-600" role="alert">
+              {errors.isSortingWaste}
+            </p>
+          )}
+        </div>
 
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="RT" htmlFor="house-rt" error={errors.rt} required>
@@ -210,36 +252,6 @@ export function HouseFormModal({ house, onClose, onSaved }: HouseFormModalProps)
           </div>
         </Field>
 
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-slate-700">
-            Memilah Sampah<span className="ml-0.5 text-red-500">*</span>
-          </p>
-          <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Memilah sampah">
-            {SORTING_OPTIONS.map(({ value, label }) => {
-              const selected = form.isSortingWaste === value;
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => updateField('isSortingWaste', value)}
-                  className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 ${
-                    selected ? SORTING_SELECTED_CLASS[value] : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                  }`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-          {errors.isSortingWaste && (
-            <p className="text-xs font-medium text-red-600" role="alert">
-              {errors.isSortingWaste}
-            </p>
-          )}
-        </div>
-
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Nama Jalan" htmlFor="house-street" hint="Opsional, contoh: Jl. Mawar">
             <input
@@ -262,6 +274,18 @@ export function HouseFormModal({ house, onClose, onSaved }: HouseFormModalProps)
             />
           </Field>
         </div>
+
+        <HouseImagePicker
+          currentImageUrl={house?.imageUrl ?? null}
+          selectedFile={imageFile}
+          onSelect={(file) => {
+            setImageFile(file);
+            if (file) setIsImageRemoved(false);
+          }}
+          isExistingRemoved={isImageRemoved}
+          onRemoveExisting={setIsImageRemoved}
+          disabled={submitting}
+        />
       </form>
     </Modal>
   );

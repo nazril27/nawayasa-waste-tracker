@@ -117,6 +117,8 @@ export interface HousePayload {
   isSortingWaste: SortingStatus;
   streetName?: string;
   houseNumber?: string;
+  imageUrl?: string | null;
+  imagePublicId?: string | null;
 }
 
 export interface HouseUpdatePayload {
@@ -126,6 +128,8 @@ export interface HouseUpdatePayload {
   isSortingWaste: SortingStatus;
   streetName: string | null;
   houseNumber: string | null;
+  imageUrl?: string | null;
+  imagePublicId?: string | null;
 }
 
 export interface WastePayload {
