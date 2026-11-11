@@ -17,8 +17,8 @@ export function Pagination({ meta, itemLabel, onPageChange, disabled = false }: 
   const to = Math.min(meta.page * meta.pageSize, meta.total);
 
   return (
-    <div className="mt-6 flex flex-col items-center justify-between gap-3 sm:flex-row">
-      <p className="text-sm text-slate-500">
+    <div className="mt-6 flex flex-wrap items-center justify-center gap-3 sm:justify-between">
+      <p className="w-full text-center text-sm text-slate-500 sm:w-auto">
         Menampilkan{' '}
         <span className="font-semibold text-slate-900">
           {formatNumber(from)}–{formatNumber(to)}
@@ -33,9 +33,9 @@ export function Pagination({ meta, itemLabel, onPageChange, disabled = false }: 
           disabled={disabled || meta.page <= 1}
         >
           <ChevronLeft className="h-4 w-4" />
-          Sebelumnya
+          <span className="hidden sm:inline">Sebelumnya</span>
         </Button>
-        <span className="w-28 text-center text-sm font-medium text-slate-600">
+        <span className="w-20 text-center text-sm font-medium text-slate-600">
           Hal. {meta.page} / {meta.totalPages}
         </span>
         <Button
@@ -44,7 +44,7 @@ export function Pagination({ meta, itemLabel, onPageChange, disabled = false }: 
           onClick={() => onPageChange(meta.page + 1)}
           disabled={disabled || meta.page >= meta.totalPages}
         >
-          Berikutnya
+          <span className="hidden sm:inline">Berikutnya</span>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>

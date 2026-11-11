@@ -17,8 +17,8 @@ export function RtBreakdown({ rows }: { rows: RtSummary[] }) {
           {rows.map((row) => (
             <li key={row.rt}>
               <div className="flex items-center justify-between gap-3 text-sm">
-                <span className="font-semibold text-slate-900">{rtLabel(row.rt)}</span>
-                <span className="text-slate-500">
+                <span className="min-w-0 shrink-0 font-semibold text-slate-900">{rtLabel(row.rt)}</span>
+                <span className="min-w-0 text-right text-slate-500">
                   {formatNumber(row.houses)} rumah · {formatNumber(row.familyMembers)} anggota
                 </span>
               </div>

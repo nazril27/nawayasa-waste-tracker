@@ -30,8 +30,8 @@ export function WasteTypeBreakdown({ items }: { items: WasteTypeSummary[] }) {
         {rows.map((row) => (
           <li key={row.value}>
             <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="font-medium text-slate-700">{row.label}</span>
-              <span className="font-semibold text-slate-900">{formatWeight(row.weight)}</span>
+              <span className="min-w-0 shrink-0 font-medium text-slate-700">{row.label}</span>
+              <span className="min-w-0 text-right font-semibold text-slate-900">{formatWeight(row.weight)}</span>
             </div>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
               <div

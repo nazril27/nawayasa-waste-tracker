@@ -45,11 +45,11 @@ export function DashboardPage({ onNavigate }: DashboardPageProps) {
           <p className="mt-1 text-sm text-slate-500">Pantau perkembangan pendataan dan pemilahan sampah warga.</p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button variant="secondary" onClick={() => setQuickModal('house')}>
+          <Button variant="secondary" className="w-full sm:w-auto" onClick={() => setQuickModal('house')}>
             <UserPlus className="h-4 w-4" />
             Tambah Rumah
           </Button>
-          <Button onClick={() => setQuickModal('waste')}>
+          <Button className="w-full sm:w-auto" onClick={() => setQuickModal('waste')}>
             <Plus className="h-4 w-4" />
             Catat Sampah Cepat
           </Button>
