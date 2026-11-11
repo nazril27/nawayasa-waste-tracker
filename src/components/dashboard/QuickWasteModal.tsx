@@ -1,5 +1,4 @@
 import { Modal } from '@/components/ui/Modal';
-import { ErrorState, ListSkeleton } from '@/components/ui/States';
 import { WasteForm } from '@/components/wastes/WasteForm';
 import { useFetchList } from '@/hooks/useFetchList';
 import { houseApi } from '@/lib/api/houses';
@@ -17,13 +16,9 @@ export function QuickWasteModal({ onClose, onSaved }: QuickWasteModalProps) {
       open
       onClose={onClose}
       title="Catat Sampah Cepat"
-      description="Pilih jenis dan berat sampah, serta pilih rumah bila ada."
+      description="Pilih jenis dan berat sampah. Rumah warga bersifat opsional."
     >
-      {houses.loading && <ListSkeleton rows={3} />}
-      {!houses.loading && houses.error && <ErrorState message={houses.error} onRetry={houses.reload} />}
-      {!houses.loading && !houses.error && (
-        <WasteForm houses={houses.data} onSaved={onSaved} onCancel={onClose} />
-      )}
+      <WasteForm houses={houses.data} onSaved={onSaved} onCancel={onClose} />
     </Modal>
   );
 }

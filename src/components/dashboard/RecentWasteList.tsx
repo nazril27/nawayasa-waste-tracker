@@ -13,10 +13,14 @@ export function RecentWasteList({ wastes }: { wastes: WasteRecord[] }) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold text-slate-900">
-              {waste.house ? waste.house.headOfFamilyName : `Rumah #${waste.houseId}`}
+              {waste.house
+                ? waste.house.headOfFamilyName
+                : waste.houseId
+                  ? `Rumah #${waste.houseId}`
+                  : 'Catatan Umum'}
             </p>
             <p className="truncate text-xs text-slate-500">
-              {waste.house ? formatAddress(waste.house) : 'Data rumah tidak tersedia'} · {formatDateTime(waste.createdAt)}
+              {waste.house ? formatAddress(waste.house) : 'Tanpa rumah'} · {formatDateTime(waste.createdAt)}
             </p>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1.5">

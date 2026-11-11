@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { History, PencilLine } from 'lucide-react';
 import { Pagination } from '@/components/ui/Pagination';
-import { ErrorState, ListSkeleton, Skeleton } from '@/components/ui/States';
+import { ErrorState, ListSkeleton } from '@/components/ui/States';
 import { WasteForm } from '@/components/wastes/WasteForm';
 import { WasteHistory } from '@/components/wastes/WasteHistory';
 import { useFetchList } from '@/hooks/useFetchList';
@@ -30,22 +30,11 @@ export function WastesPage() {
           </div>
           <div>
             <h2 className="text-base font-semibold text-slate-900">Catat Sampah Baru</h2>
-            <p className="mt-0.5 text-sm text-slate-500">Pilih jenis dan berat sampah, serta rumah warga (opsional).</p>
+            <p className="mt-0.5 text-sm text-slate-500">Pilih jenis dan berat sampah. Rumah warga bersifat opsional.</p>
           </div>
         </div>
 
-        {houses.loading && <Skeleton className="h-96 rounded-xl" />}
-        {!houses.loading && houses.error && <ErrorState message={houses.error} onRetry={houses.reload} />}
-        {!houses.loading && !houses.error && (
-          <>
-            {houses.data.length === 0 && (
-              <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                Belum ada rumah terdata. Tambahkan rumah di menu Data Rumah terlebih dahulu.
-              </div>
-            )}
-            <WasteForm houses={houses.data} onSaved={handleSaved} />
-          </>
-        )}
+        <WasteForm houses={houses.data} onSaved={handleSaved} />
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm lg:col-span-3">
