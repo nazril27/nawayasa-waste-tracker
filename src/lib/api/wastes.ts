@@ -6,7 +6,7 @@ function normalizeWaste(raw: WasteRecord): WasteRecord {
   return {
     ...raw,
     id: Number(raw.id),
-    houseId: Number(raw.houseId),
+    houseId: raw.houseId != null ? Number(raw.houseId) : null,
     weight: Number(raw.weight),
   };
 }

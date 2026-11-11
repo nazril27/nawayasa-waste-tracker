@@ -41,7 +41,8 @@ export interface WasteRecord {
   id: number;
   weight: number;
   typesOfWaste: WasteType;
-  houseId: number;
+  note?: string | null;
+  houseId?: number | null;
   userId?: User['id'] | null;
   user?: UserSummary | null;
   house?: HouseSummary | null;
@@ -135,6 +136,7 @@ export interface HouseUpdatePayload {
 export interface WastePayload {
   weight: number;
   typesOfWaste: WasteType;
-  houseId: number;
+  note?: string | null;
+  houseId?: number | null;
   userId: User['id'];
 }

@@ -6,7 +6,9 @@ import { sortByNewest } from '@/lib/stats';
 import type { WasteRecord } from '@/types';
 
 function houseTitle(waste: WasteRecord): string {
-  return waste.house ? waste.house.headOfFamilyName : `Rumah #${waste.houseId}`;
+  if (waste.house) return waste.house.headOfFamilyName;
+  if (waste.houseId) return `Rumah #${waste.houseId}`;
+  return 'Tanpa Rumah (Umum)';
 }
 
 function recorderName(waste: WasteRecord): string {
@@ -45,6 +47,7 @@ export function WasteHistory({ wastes }: { wastes: WasteRecord[] }) {
                 <td className="px-5 py-4">
                   <p className="font-semibold text-slate-900">{houseTitle(waste)}</p>
                   {waste.house && <p className="text-xs text-slate-500">{formatAddress(waste.house)}</p>}
+                  {waste.note && <p className="mt-0.5 text-xs italic text-slate-500">Ket: {waste.note}</p>}
                 </td>
                 <td className="px-5 py-4 text-slate-600">{recorderName(waste)}</td>
                 <td className="px-5 py-4">
@@ -68,6 +71,7 @@ export function WasteHistory({ wastes }: { wastes: WasteRecord[] }) {
               <p className="truncate text-xs text-slate-500">
                 {formatDateTime(waste.createdAt)} · {recorderName(waste)}
               </p>
+              {waste.note && <p className="mt-0.5 truncate text-xs italic text-slate-500">Ket: {waste.note}</p>}
               <div className="mt-1.5">
                 <WasteTypeBadge type={waste.typesOfWaste} />
               </div>

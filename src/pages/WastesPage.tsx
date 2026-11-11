@@ -30,7 +30,7 @@ export function WastesPage() {
           </div>
           <div>
             <h2 className="text-base font-semibold text-slate-900">Catat Sampah Baru</h2>
-            <p className="mt-0.5 text-sm text-slate-500">Pilih rumah, lalu masukkan berat dan jenis sampah.</p>
+            <p className="mt-0.5 text-sm text-slate-500">Pilih jenis dan berat sampah, serta rumah warga (opsional).</p>
           </div>
         </div>
 

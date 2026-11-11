@@ -17,7 +17,7 @@ export function QuickWasteModal({ onClose, onSaved }: QuickWasteModalProps) {
       open
       onClose={onClose}
       title="Catat Sampah Cepat"
-      description="Pilih rumah, lalu isi berat dan jenis sampahnya."
+      description="Pilih jenis dan berat sampah, serta pilih rumah bila ada."
     >
       {houses.loading && <ListSkeleton rows={3} />}
       {!houses.loading && houses.error && <ErrorState message={houses.error} onRetry={houses.reload} />}

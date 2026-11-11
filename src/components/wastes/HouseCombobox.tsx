@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { ChevronsUpDown, MapPin } from 'lucide-react';
+import { ChevronsUpDown, MapPin, X } from 'lucide-react';
 import { inputClass } from '@/components/ui/Field';
 import { formatAddress } from '@/lib/format';
 import type { House } from '@/types';
@@ -8,7 +8,7 @@ interface HouseComboboxProps {
   id: string;
   houses: House[];
   selectedId: number | null;
-  onSelect: (houseId: number) => void;
+  onSelect: (houseId: number | null) => void;
   hasError?: boolean;
 }
 
@@ -73,8 +73,7 @@ export function HouseCombobox({ id, houses, selectedId, onSelect, hasError = fal
         aria-autocomplete="list"
         autoComplete="off"
         value={displayValue}
-        placeholder={houses.length === 0 ? 'Belum ada rumah terdata' : 'Cari kepala keluarga, RT, atau jalan'}
-        disabled={houses.length === 0}
+        placeholder={houses.length === 0 ? 'Tanpa rumah warga (opsional)' : 'Pilih rumah warga (opsional)'}
         onFocus={() => {
           setOpen(true);
           setQuery('');
@@ -89,15 +88,45 @@ export function HouseCombobox({ id, houses, selectedId, onSelect, hasError = fal
         onKeyDown={handleKeyDown}
         className={`${inputClass(hasError)} pr-10`}
       />
-      <ChevronsUpDown className="pointer-events-none absolute inset-y-0 right-3.5 my-auto h-4 w-4 text-slate-400" />
+      {selected && !open ? (
+        <button
+          type="button"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            onSelect(null);
+            setQuery('');
+          }}
+          className="absolute inset-y-0 right-3 my-auto flex h-6 w-6 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          title="Hapus pilihan rumah"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      ) : (
+        <ChevronsUpDown className="pointer-events-none absolute inset-y-0 right-3.5 my-auto h-4 w-4 text-slate-400" />
+      )}
 
-      {open && houses.length > 0 && (
+      {open && (
         <ul
           ref={listRef}
           id={listId}
           role="listbox"
           className="absolute z-20 mt-2 max-h-72 w-full animate-fade-in overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl"
         >
+          <li
+            role="option"
+            aria-selected={selectedId === null}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onSelect(null);
+              setQuery('');
+              setOpen(false);
+            }}
+            className={`flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs transition-colors ${
+              selectedId === null ? 'bg-slate-100 font-semibold text-slate-700' : 'text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            <span className="italic">— Tanpa rumah warga (Opsional) —</span>
+          </li>
           {filtered.length === 0 && (
             <li className="px-3 py-6 text-center text-sm text-slate-500">Tidak ada rumah yang cocok.</li>
           )}
